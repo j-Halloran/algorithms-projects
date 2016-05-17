@@ -1,0 +1,195 @@
+import java.security.MessageDigest;
+import java.math.BigInteger;
+import java.io.*;
+import java.util.Scanner;
+import java.util.Random;
+import java.security.NoSuchAlgorithmException;
+
+/**
+* This class allows a user to use an RSA key pair to sign files and verify those signatures
+* Last Edited: 4/21/16
+* @author Jake Halloran
+**/
+public class MySign{
+	/**
+	* @param args Contains the filename of the message to hash and whether to sign or verify
+	* @throws IOException if there is an issue reading any of the files
+	* @throws IllegalArgumentException if there are improper command line arguments
+	**/
+	public static void main(String args[]) throws NoSuchAlgorithmException{
+		byte[] inputBuffer = new byte[1000];
+		int bytesRead = 0;
+		
+		//Command line argument verification
+		if(args.length!=2){
+			throw new IllegalArgumentException("You must pass either s or v and a filename.");
+		}
+		if(!args[0].equals("s")&&!args[0].equals("v")){
+			throw new IllegalArgumentException("The first commandline argument must be either v or s.");
+		}
+		try{
+			//File signing functionality
+			if(args[0].equals("s")){
+				MessageDigest md  = MessageDigest.getInstance("SHA-256");
+				Scanner input = null;
+				StringBuilder inputBuilder = new StringBuilder();
+				
+				//open the command line file
+				try{
+					input = new Scanner(new File(args[1]));
+				}
+				catch(FileNotFoundException ex){
+					System.err.println("The entered file does not exist.");
+					System.exit(1);
+				}
+				
+				//Read the bytes of the file into the message digest
+				while(input.hasNextLine()){
+					String nextLine = input.nextLine();
+					inputBuilder.append(nextLine);
+					inputBuilder.append("\n");
+				}
+				
+				//Digest the hash and convert it to a big integer
+				String totalInput = inputBuilder.toString();
+				byte[] inputBytes = totalInput.getBytes();
+				md.update(inputBytes);
+				byte[] digest = md.digest();
+				BigInteger result = new BigInteger(1,digest);
+				System.out.println(result);
+				
+				//try to open privkey.rsa
+				BufferedReader privkeyReader = null;
+				try{
+					privkeyReader = new BufferedReader(new FileReader(new File("privkey.rsa")));
+				}
+				catch(FileNotFoundException ex){
+					System.err.println("The required file privkey.rsa was not found.");
+					System.exit(1);
+				}
+				
+				//Read in d and n for computation
+				BigInteger d = new BigInteger(privkeyReader.readLine());
+				BigInteger n = new BigInteger(privkeyReader.readLine());
+				
+				//Calculate the signed message
+				result = result.modPow(d,n);
+				
+				System.out.println(result);
+				
+				//Close the original opening of the input file
+				input.close();
+				
+				//Print results
+				try{	
+					String outFileName = args[1]+".signed";
+					Scanner inputContent = new Scanner(new File(args[1]));
+					PrintWriter signedOutput = new PrintWriter(new FileWriter(new File(outFileName)));
+					while(inputContent.hasNextLine()){
+						signedOutput.println(inputContent.nextLine());
+					}
+					signedOutput.println("Begin hash result:");
+					signedOutput.print(result);
+					signedOutput.close();
+				}
+				//Lazily catch all io crap
+				catch (IOException ex){
+					System.err.println("Error writing to signed file.");
+					System.exit(1);
+				}					
+			}
+			
+			//Signature verification functionality
+			else if(args[0].equals("v")){
+				MessageDigest md = MessageDigest.getInstance("SHA-256");
+				Scanner input = null;
+				StringBuilder inputBuilder = new StringBuilder();
+				String nextLine;
+				try{
+					input = new Scanner(new File(args[1]));
+				}
+				catch(IOException ex){
+					System.err.println("The entered file does not exist.");
+					System.exit(1);
+				}
+				
+				
+				//Read in all original data
+				while(input.hasNextLine()){
+					nextLine = input.nextLine();
+					if(nextLine.equals("Begin hash result:")){
+						break;
+					}
+					inputBuilder.append(nextLine);
+					inputBuilder.append("\n");
+				}
+				//Store hash result as bigint
+				String totalInput = inputBuilder.toString();
+				byte[] inputBytes = totalInput.getBytes();
+				md.update(inputBytes);
+				byte[] digest = md.digest();			
+				BigInteger result = new BigInteger(1,digest);
+
+				//try to open pubkey.rsa
+				BufferedReader pubkeyReader = null;
+				try{
+					pubkeyReader = new BufferedReader(new FileReader(new File("pubkey.rsa")));
+				}
+				catch(IOException ex){
+					System.err.println("The required file pubkey.rsa was not found.");
+					System.exit(1);
+				}
+				
+				//Read in e and  n for processing
+				BigInteger e = new BigInteger(pubkeyReader.readLine());
+				BigInteger n = new BigInteger(pubkeyReader.readLine());
+				
+				//try to open privkey.rsa
+				BufferedReader privkeyReader = null;
+				try{
+					privkeyReader = new BufferedReader(new FileReader(new File("privkey.rsa")));
+				}
+				catch(IOException ex){
+					System.err.println("The required file privkey.rsa was not found.");
+					System.exit(1);
+				}
+				
+				//Read in d and n for computation
+				BigInteger d = new BigInteger(privkeyReader.readLine());
+				
+				//Wierd issue where decrypting doesnt always give same value so encrypting and decrypting here
+				System.out.println("Result: "+result);
+				BigInteger temp = result.modPow(e,n);
+				System.out.println(temp);
+				//System.out.println("Result^d mod n: \n"+temp);
+				temp = temp.modPow(d,n);
+				//System.out.println("Temp^e mod n: \n"+temp);
+				result = temp;
+				
+				//read in the previous hash value
+				BigInteger privateHashVal = new BigInteger(input.nextLine());
+				
+				//"Encrypt" previous hash
+				BigInteger encrypt = privateHashVal.modPow(e,n);
+
+				//Test results
+				if(encrypt.equals(result)){
+					System.out.println("The RSA signature on this file is valid.");
+				}
+				else{
+					System.out.println("The RSA signature on this file is invalid.");
+				}
+				
+				//Close file streams
+				input.close();
+				pubkeyReader.close();
+				
+			}
+			
+		}
+		catch(IOException ex){
+			System.err.println("Error reading file.");
+			System.exit(1);
+		}
+	}
+}
