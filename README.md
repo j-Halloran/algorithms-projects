@@ -1,7 +1,7 @@
 CS/COE 1501 - Algorithm Implementation- Projects
 
-1.
-2. Personal LZW Compression Implementation
-3. Car Tracker w/ Priority Queue
-4. Airline Route Mapping
-5. RSA Keypair Generation
+1. Password Generator and Verfier
+1. Personal LZW Compression Implementation
+1. Car Tracker w/ Priority Queue
+1. Airline Route Mapping
+1. RSA Keypair Generation
