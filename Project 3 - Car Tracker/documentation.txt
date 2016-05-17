@@ -1,0 +1,30 @@
+My solution to the problem of having two separate data points that need to be efficiently operated upon was to simply include
+two separate priority queues inside a wrapper class and act on each when appropriate. Rather than start from scratch or
+make use of the book code, the backbone of my queues are formed by making use of java.util.PriorityQueue. Due to the fact
+that the java library priority queue is also based on an indirected array just like the project requires, the runtimes are
+easily calculated. For adding items to the queue, the program runs in O(log(n)) time for adding items to the queue, linear
+O(n)time for removing an item in the worst case, however the average case will be approximately half that as there is an early
+exit when the item is found if it is present. Furthermore, the queue has constant time O(1) access when needing to access the 
+lowest overall mileage or price as both are tracked in independent queues. In the worst case, accessing the lowest
+price or mileage for a given make and model is O(n) time however, practically speaking, it should run
+quickly as unless all vehicles entered share a make and model, most vehicles will not do more work than a comparision per loop.
+Of course, for adding and removing items the actual runtime is 2*O(log(n)) and 2*(O(n)) in the worst case due to the double
+queue, however, becasue doubling the work is only a practical slow down not a asymptotic one, the runtimes remain O(log(n)) and 
+O(n). As for updating, the actual update can take up to 0(n) time to both find and remove the node, so despite the constant
+time updating and adding, the runtime will be 0(n). Finally, the one issue that is actually an issue from the dual queue
+implementation is that obviously using two queues uses more space. This however, despite seeming like an issue as 2*n space is
+used rather than n, it should not really be an issue as the space required for each car is relatively small and therefore
+thousands or even millions of cars would need to be added before there is an issue with regards to the memory contained
+in a modern machine.
+
+Runtime Table
+Operation        |    Runtime in Worst Case
+Add			     |    O(log(n))
+Remove           |    O(n)
+Update           |    O(n)
+Lowest Price     |    O(1)
+Lowest Miles     |    O(1)
+Make/Model Price |    O(n) 
+Make/Model Miles |    O(n)
+
+Space Requirements for queue: 2*n
